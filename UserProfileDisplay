@@ -1,0 +1,7 @@
+##USER PROFILE IMAGE DISPLAY CODE
+
+If(!IsBlank(ThisItem.Task.ApproverEmail),
+If(Office365Users.UserPhotoMetadata(ThisItem.Task.ApproverEmail).HasPhoto,
+    Office365Users.UserPhotoV2(ThisItem.Task.ApproverEmail),
+    SampleImage
+),SampleImage)

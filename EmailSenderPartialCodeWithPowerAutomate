@@ -1,0 +1,12 @@
+UpdateContext({
+    ctxApprovers: Concat(LookUp(ApprovalPreset,Level = 6,Approvers),Email,";"),
+    ctxEmailCC: Concat(LookUp(ApprovalPreset,Level = 6,EmailCC),Email,";"),
+    NextDate: cmp_addweekdays.NextDueDate(Today(),5),
+    DueDate: Text(cmp_addweekdays.NextDueDate(Today(),2),"dd-mm-yyyy"),
+    ctxApproverNames: Concat(LookUp(ApprovalPreset,Level = 6,Approvers),DisplayName,", "),
+    ctxMailSubject: "Approval or Initiatial request subject here",
+    ctxMailBody:$"<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>You have a request pending for task #3 and DueDate is <strong>{DueDate}</strong></p>"
+    });
+    
+EmailMonster.Run(ctxMailSubject,ctxMailBody,ctxApprovers,ctxApproverNames,ctxApprovers,MyProfile.Mail)
+

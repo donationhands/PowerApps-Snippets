@@ -1,0 +1,8 @@
+parameter:
+StartDate = Date Time, like Now() or Today()
+AddMonths = Numeric like 2,3 
+
+Date(Year(StartDate), Month(StartDate)+1, 1)-1
+
+##Optional Add Month Feature
+DateAdd(Date(Year(StartDate), Month(StartDate)+1, 1), AddMonths, TimeUnit.Months)-1

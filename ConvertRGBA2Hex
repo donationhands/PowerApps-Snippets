@@ -1,0 +1,7 @@
+Match(
+        JSON(
+            button1.Fill,
+            JSONFormat.IgnoreUnsupportedTypes
+        ),
+        "#[a-fA-F0-9]{6}"
+    ).FullMatch

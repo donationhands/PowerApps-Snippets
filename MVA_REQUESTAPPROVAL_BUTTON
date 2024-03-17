@@ -1,0 +1,273 @@
+Set(showLoading, true);
+Set(ApproverPopupNotify,false);
+If(cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel=1 && ApprovalStatusDrodown.Selected.Value="Rejected",
+Notify("The current approval level does not suppport the Rejected action!");
+,
+With({ 
+    activeRequest:LookUp('MVRequest List', ID=cmp_RequestApproval.ApprovalItem.Task.ParentRef),
+    LastApprovalLevel:CountApprovalLevels,
+    DueDate: Text(DateAdd(Today(),2 + RoundDown((Weekday(Today(),StartOfWeek.Monday) + 2 - 1) / 5,0) * 2,TimeUnit.Days),"dd-mm-yyyy")
+},
+Switch(ApprovalStatusDrodown.Selected.Value,
+    "Returned", 
+        With({varReturnedResponse: 
+                Patch('MVRequest List', activeRequest, 
+                    {Status: ApprovalStatusDrodown.Selected}
+                ),
+                taskPreset:LookUp(ApprovalPreset,Level = cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel)
+            }, 
+            
+           With({returnedTask: Patch('MVRequest Task', cmp_RequestApproval.ApprovalItem.Task,
+            {
+                Comment: ApprovalCommentTextInput.Text,
+                CommentDate: Now(),
+                Status: ApprovalStatusDrodown.Selected,
+                ApprovedBy: MyProfile.DisplayName,
+                ApproverEmail: MyProfile.Mail,
+                ApproverObject: currentUserObject,
+                ApprovalLevel: cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel
+            })},
+            EmailMonster.Run(
+                returnedTask.Title,
+                "<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>You have a returned request pending your review for task #"&returnedTask.ID&"</strong></p>
+                <table>
+                <tr><td><strong>Returned By</strong></td><td>"& MyProfile.DisplayName &"<br/>" &MyProfile.Mail &"</td></tr><tr><td><strong>Incidence date</strong></td><td>" &varReturnedResponse.IncidenceDate & "</td></tr>
+                <tr><td><strong>Approver level</strong></td><td>"& taskPreset.LevelName & "</td></tr>
+                <tr><td><strong>Approver comment</strong></td><td>" & returnedTask.Comment & "</td></tr>
+                </table>",
+                Concat(taskPreset.EmailCC,Email,";")&";"&Concat(taskPreset.Approvers,Email,";"),
+                varReturnedResponse.'Created By'.DisplayName,
+                varReturnedResponse.'Created By'.Email,
+                MyProfile.Mail
+            )
+           );
+            
+        )
+    ,
+    "Rejected", 
+        With({ previousLevel:activeRequest.PreviousLevel},
+        With({ varPrevTask: Patch('MVRequest Task', 
+        LookUp('MVRequest Task',ParentRef=cmp_RequestApproval.ApprovalItem.Task.ParentRef && ApprovalLevel=previousLevel),
+                {
+                    Status: {ID: "Pending", Value: "Pending"}
+                })
+            },
+            With({taskPreset:LookUp(ApprovalPreset,Level = previousLevel),
+                varReturnRequest:Patch('MVRequest List', activeRequest, 
+            {
+                PreviousLevel:activeRequest.PreviousLevel-1,
+                CurrentLevel:activeRequest.PreviousLevel,
+                NextLevel:activeRequest.CurrentLevel,
+                Status:{Value: "InProgress", ID: "InProgress"}
+            })},
+            
+            RemoveIf('MVRequest Documents',TrackID=cmp_RequestApproval.ApprovalItem.Task.ID);
+            Remove('MVRequest Task', cmp_RequestApproval.ApprovalItem.Task);
+
+            EmailMonster.Run(
+                varPrevTask.Title,
+                "<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>You have a rejected request pending your review for task #"&varPrevTask.ID & "</strong></p>
+                <table>
+                <tr><td><strong>Returned By</strong></td><td>"& MyProfile.DisplayName &"<br/>" &MyProfile.Mail &"</td></tr><tr><td><strong>Incidence date</strong></td><td>" &varReturnRequest.IncidenceDate & "</td></tr>
+                <tr><td><strong>Approver level</strong></td><td>"& taskPreset.LevelName & "</td></tr>
+                <tr><td><strong>Approver comment</strong></td><td>" & ApprovalCommentTextInput.Text & "</td></tr></table>",
+                Concat(taskPreset.EmailCC,Email,";")&";"&Concat(taskPreset.Approvers,Email,";")
+                &";"&Concat(cmp_RequestApproval.ApprovalItem.Approvers,Email,";")&";"&Concat(cmp_RequestApproval.ApprovalItem.EmailCC,Email,";"),
+                Concat(taskPreset.Approvers,DisplayName,", "),
+                Concat(taskPreset.Approvers,Email,";"),
+                MyProfile.Mail
+            )
+            )
+        ))
+    ,
+    "Terminated", 
+    With({
+        taskPreset:LookUp(ApprovalPreset,Level = cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel),
+        varTask: Patch('MVRequest Task', cmp_RequestApproval.ApprovalItem.Task,
+        {
+            Comment: ApprovalCommentTextInput.Text,
+            CommentDate: Now(),
+            Status: ApprovalStatusDrodown.Selected,
+            ApprovedBy: MyProfile.DisplayName,
+            ApproverEmail: MyProfile.Mail,
+            ApproverObject: currentUserObject,
+            ApprovalLevel: cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel
+        })
+    },
+        Patch('MVRequest List', activeRequest, 
+        {
+            Status: ApprovalStatusDrodown.Selected
+        });
+
+        EmailMonster.Run(
+                varTask.Title,
+                "<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>Your vehicle insurance request has been declined #" &activeRequest.ID & "</strong></p>
+                <table>
+                <tr><td><strong>Terminated By</strong></td><td>"& MyProfile.DisplayName &"<br/>" &MyProfile.Mail &"</td></tr><tr><td><strong>Incidence date</strong></td><td>" &activeRequest.IncidenceDate & "</td></tr>
+                <tr><td><strong>Comment</strong></td><td>"& varTask.Comment & "</td></tr>
+                <tr><td><strong>Approver level</strong></td><td>"& taskPreset.LevelName & "</td></tr>
+                </table>",
+                Concat(taskPreset.EmailCC,Email,";")&";"&Concat(taskPreset.Approvers,Email,";"),
+                activeRequest.'Created By'.DisplayName,
+                activeRequest.'Created By'.Email,
+                MyProfile.Mail
+            )
+       
+    )
+    ,
+    "Approved", 
+    With({
+    taskPreset:LookUp(ApprovalPreset,Level = cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel),
+    varTask: Patch('MVRequest Task', cmp_RequestApproval.ApprovalItem.Task,
+    {
+        Comment: ApprovalCommentTextInput.Text,
+        CommentDate: Now(),
+        Status: ApprovalStatusDrodown.Selected,
+        ApprovedBy: MyProfile.DisplayName,
+        ApproverEmail: MyProfile.Mail,
+        ApproverObject: currentUserObject,
+        ApprovalLevel: cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel
+    }),
+    //send email notification for task approval
+    isFinalApproval: If(LastApprovalLevel >  cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel,false,true)
+},
+  //handle task attachment
+    If(cmp_RequestApproval.ApprovalItem.Task.ApprovalLevel in [2,3],
+        RemoveIf('MVRequest Documents',TrackID=varTask.ID);
+        ForAll(
+            ApproverDataCardValue.Attachments As Document,
+            UploadFileToDocumentLibrary.Run(
+                "Task Files",
+                varTask.ParentRef,
+                2,
+                " ",
+                varTask.ID,
+                0,
+                {file:{
+                    contentBytes: Document.Value,
+                    name: Document.Name
+                }}
+            )
+        )
+    );
+
+    If(!isFinalApproval,
+        With({
+            NextApprovalLevel: Switch(activeRequest.CurrentLevel,
+            4, If(activeRequest.ApprovedRepairAmount <= 3000000,LastApprovalLevel,activeRequest.NextLevel + 1),
+            6, If(activeRequest.ApprovedRepairAmount <= 5000000,LastApprovalLevel,activeRequest.NextLevel + 1),
+            activeRequest.NextLevel + 1
+        )
+        },
+        With({varRequest: Patch('MVRequest List', activeRequest, 
+                If(activeRequest.CurrentLevel=3,
+                    {
+                        PreviousLevel:activeRequest.CurrentLevel,
+                        CurrentLevel:If(NextApprovalLevel=LastApprovalLevel,NextApprovalLevel,activeRequest.NextLevel),
+                        NextLevel: NextApprovalLevel,
+                        SelVendorName:ApproverVendorDropdown.SelectedText.Name,
+                        SelVendorPhone: ApprovalVPhoneTextInput.Text,
+                        ApprovedRepairAmount: Value(ApprovalVAmountTextInput.Text)                 
+                    },
+                    {
+                        PreviousLevel:activeRequest.CurrentLevel,
+                        CurrentLevel:If(NextApprovalLevel=LastApprovalLevel && activeRequest.NextLevel <> 7,NextApprovalLevel,activeRequest.NextLevel),
+                        NextLevel: NextApprovalLevel
+                    }
+                )
+
+                ),
+                ctxNextPreset: LookUp(ApprovalPreset,Level= If(NextApprovalLevel=LastApprovalLevel && activeRequest.NextLevel <> 7,NextApprovalLevel,activeRequest.NextLevel))
+            }, 
+           
+                With({newTask:Patch('MVRequest Task',Defaults('MVRequest Task'),{
+                        Title: Concatenate("#",varRequest.ID, " ", varRequest.RegNumber, " ", varRequest.Make, " Level-",ctxNextPreset.Level," ", ctxNextPreset.LevelName," ", Text(varRequest.IncidenceDateTime, "yyyy-mmm-dd-hh-mm")),
+                        ApprovalLevel:varRequest.CurrentLevel,
+                        ParentRef: varRequest.ID
+                    })},  
+                    //send  notification to new request pending approval   
+                    EmailMonster.Run(
+                        newTask.Title,
+                        "<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>
+                            You have a request pending for task #" & newTask.ID & " and DueDate is <strong>" & DueDate & "</strong>
+                        </p>
+                        <table>
+                        <tr><td><strong>Initiator</strong></td>
+                            <td>" & varRequest.'Created By'.DisplayName & "<br/>" & varRequest.'Created By'.Email & "</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Incidence date</strong></td>
+                            <td>" & varRequest.IncidenceDate & "</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Damage description</strong></td>
+                            <td>" & varRequest.IncidenceDamageDes & "</td>
+                        </tr>
+                         <tr>
+                            <td><strong>Current Approval Level</strong></td>
+                            <td>" & ctxNextPreset.LevelName & "</td>
+                        </tr>
+                        </table>
+                        ",
+                        Concat(ctxNextPreset.EmailCC,Email,";"),
+                        Concat(ctxNextPreset.Approvers,DisplayName,", "),
+                        Concat(ctxNextPreset.Approvers,Email,";"),
+                        MyProfile.Mail
+                    )  
+                )          
+            )
+        ),
+        With({varRequest: Patch('MVRequest List', activeRequest, 
+            {
+                PreviousLevel:activeRequest.CurrentLevel,
+                CurrentLevel:activeRequest.NextLevel,
+                AmountPaid:Value(ApproverAmtPaidTextInput.Text),
+                AccountPaidTo:Value(ApproverSelVendorAcctTextInput.Text),
+                AmountPaidToName:ApprovalSelVendorAcctNameTextInput.Text,
+                Status: ApprovalStatusDrodown.Selected
+            }) 
+        }, 
+        //"send out notification to initiator for final approval"
+            EmailMonster.Run(
+                varTask.Title,
+                "<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>Your vehicle insurance request has been approved #" &varRequest.ID & "</strong></p>
+                <table>
+                <tr><td><strong>Approved By</strong></td><td>"& MyProfile.DisplayName &"<br/>" & MyProfile.Mail &"</td></tr><tr><td><strong>Incidence date</strong></td><td>" &varRequest.IncidenceDate & "</td></tr>
+                <tr><td><strong>Comment</strong></td><td>"& varTask.Comment & "</td></tr>
+                <tr><td><strong>Approver level</strong></td><td>"& taskPreset.LevelName & "</td></tr>
+                </table>",
+                Concat(taskPreset.EmailCC,Email,";")&";"&Concat(taskPreset.Approvers,Email,";"),
+                activeRequest.'Created By'.DisplayName,
+                activeRequest.'Created By'.Email,
+                MyProfile.Mail
+            );
+
+        )
+    )//endif final approver check
+
+),
+    //default switch case
+    Notify("The task status selected is not valid!",NotificationType.Error)
+);//endswitch statement
+
+
+    Concurrent(
+        Reset(ApprovalCommentTextInput),
+        Reset(ApproverDataCardValue),
+        Reset(ApprovalStatusDrodown),
+        Reset(ApprovalVAmountTextInput),
+        Reset(ApprovalVPhoneTextInput),
+        Reset(ApproverVendorDropdown),
+        Reset(ApprovalSelVendorAcctNameTextInput),
+        Reset(ApproverSelVendorAcctTextInput),
+        Reset(ApproverAmtPaidTextInput),
+        Refresh('MVRequest List'),
+        Refresh('MVRequest Task'),
+        Set(showLoading, false),
+        Set(DetailPopupNotify,true),
+        Set(ApproverPopupNotify,false)
+    );
+
+);//endwith global wrapper
+); //endIf returned action check
+Set(showLoading, false);

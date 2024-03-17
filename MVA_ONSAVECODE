@@ -1,0 +1,296 @@
+Set(showLoading, true);
+UpdateContext({
+    ctxDriverRef: Defaults('MVRequest Driver List'), 
+    ctxThirdPartyRef: Defaults('MVRequest ThirdParty Driver'),
+    ctxProcessError: false,
+    ctxStatus: If(editMode && varRecord.Status.Value <> "Draft", varRecord.Status, {Value:"New", ID:"New"})
+});
+
+With({
+varUpdatedRequest:Patch(
+   'MVRequest List',
+   If(editMode,LookUp('MVRequest List', ID=varRecord.ID),Defaults('MVRequest List')),
+   {
+    StaffID: StaffIDInputText.Text,
+    StaffName: StaffNameInputText.Text,
+    StaffGrade: StaffGradeDropdown.Selected,
+    StaffEmail: MyProfile.Mail,
+    StaffPhone: StaffPhoneInputText.Text,
+    GenRelieveOfficer: GenRelieveOfficerInputText.Text,
+    GenRelieveofficerPhone: GenRelieveofficerPhoneInputText.Text,
+    GenRelOfficerPerson: GenRelOfficerPeopleCombox.Selected,
+    Branch: BranchDropdown.Selected,
+    RegNumber: RegNumberInputText.Text,
+    Make: MakeInputText.Text,
+    IncidenceDate: IncidenceDatePicker.SelectedDate,
+    IncidenceDateTime: DateTimeValue(IncidenceDatePicker.SelectedDate & " " & IncidenceTimeValue),
+    IncidencePlace: IncidencePlaceTextInput.Text,
+    IncidenceDamageDes: IncidenceDamageDesTextInput.Text,
+    ThirdPartyCheck: If(ThirdPartyCheckBox.Value,1,0),
+    Status:ctxStatus
+}
+)},
+
+    If(!IsEmpty(Errors('MVRequest List')),
+        UpdateContext({ctxProcessError:true});
+        Notify(
+            Concat(Errors('MVRequest List'), Column&": "&Message),
+            NotificationType.Error
+        ),
+        //Notify("Successful request posting");
+        //Create or Update other dependencies table Tables
+        UpdateContext({ActiveRequestID:varUpdatedRequest.ID});
+        
+        If(ThirdPartyCheckBox.Value,
+           Set(ctxThirdPartyRef, Patch('MVRequest ThirdParty Driver',
+                If(editMode,Coalesce(
+                    LookUp('MVRequest ThirdParty Driver', ParentRef=ActiveRequestID),
+                    Defaults('MVRequest ThirdParty Driver')),
+                    Defaults('MVRequest ThirdParty Driver')),
+                {
+                    Name: TPDriverNameInputText.Text,
+                    Make: TPMakeTextInput.Text,
+                    RegistrationStatus: TPRegistrationStatusDropdown.Selected.Id,
+                    RegistrationNumber: TPRegistrationNumberTextInput.Text,
+                    Insured: TPInsuredDropdown.Selected.Id,
+                    ParentRef: ActiveRequestID
+                })
+            );
+            If(IsEmpty(Errors('MVRequest ThirdParty Driver',ctxThirdPartyRef)),
+                Patch('MVRequest List',varUpdatedRequest,{
+                    ThirdPartyRef:ctxThirdPartyRef.ID
+                }),
+                UpdateContext({ctxProcessError:true});
+                Notify(
+                    Concat(Errors('MVRequest ThirdParty Driver'), 
+                    Column&": "&Message) & " -TPARTY",
+                    NotificationType.Information
+                )
+            )//End if error block and lookup update
+            ,
+            RemoveIf('MVRequest ThirdParty Driver',ID=varUpdatedRequest.ThirdPartyRef);
+            Patch('MVRequest List',varUpdatedRequest,{
+                ThirdPartyRef:0
+            })
+            
+        );/*END ThirdPartyCheckBox*/
+        
+        Patch('MVRequest Vendors', 
+            AddColumns(
+                RenameColumns(ShowColumns(reqVendorColl,
+                "ID", "Name", "Phone","RepairEstimate","Account","Order"),"Order","Order0"),
+                "ParentRef",ActiveRequestID)
+        );
+        If(!IsEmpty(Errors('MVRequest Vendors')),
+            UpdateContext({ctxProcessError:true});        
+            Notify(
+                Concat(Errors('MVRequest Vendors'), Column&": "&Message) & " -Vendors",
+                NotificationType.Information
+            );
+        );
+        
+        With({ctxDriverRef:Patch('MVRequest Driver List',
+                If(editMode,Coalesce(LookUp('MVRequest Driver List', ParentRefID=ActiveRequestID),Defaults('MVRequest Driver List')),
+                Defaults('MVRequest Driver List')),
+                {
+                    Name: DriverNameInputText.Text,
+                    Phone: DriverPhoneInputText.Text,
+                    StaffID: DriverStaffIDInputText.Text,
+                    InUse: 1,
+                    ParentRefID: ActiveRequestID
+                }
+            )},
+            
+            If(IsEmpty(Errors('MVRequest Driver List',ctxDriverRef)),
+                //Patch Request List with RefIDs
+                With({
+                    ctxDriverDataID:LookUp('MVRequest Driver List', ParentRefID=ActiveRequestID,ID)
+                },
+                    //Notify("Driver ID: " & ctxDriverDataID); 
+                    Patch('MVRequest List',varUpdatedRequest,{
+                        DriverRef:{Id:ctxDriverDataID,Value:ctxDriverDataID}
+                    })
+                );
+                ,
+                UpdateContext({ctxProcessError:true});
+                Notify(
+                    Concat(Errors('MVRequest Driver List'), Column&": "&Message) & " -Drivers",
+                    NotificationType.Information
+                )
+            )
+        );
+
+        If(ImageCollectionUpdated || ThirdPartyCheckBox.Value <> Boolean(varRecord.ThirdPartyCheck),      
+            ClearCollect(ImageColl,RequestImageCollection);
+            If(!ThirdPartyCheckBox.Value,
+                ClearCollect(ImageColl,Filter(RequestImageCollection,DocumentType=0))
+            );
+            
+            ForAll(
+                ImageColl As Document,
+                UploadFileToDocumentLibrary.Run(
+                    Document.Category,
+                    ActiveRequestID,
+                    Document.DocumentType,
+                    Coalesce(Document.Description," "),
+                    Document.TrackID,
+                    If(editMode && !IsBlank(Document.ID),Value(Document.ID),0),
+                    {file:{
+                        contentBytes: Document.ImageLink,
+                        name: Document.Name
+                    }}
+                )
+            )
+            
+        );//skip image upload if nothing changes
+
+        ForAll(
+            QuotationDataCardValue.Attachments As Document,
+            UploadFileToDocumentLibrary.Run(
+                "Request Quotation Files",
+                ActiveRequestID,
+                3,
+                " ",
+                0,
+                0,
+                {file:{
+                    contentBytes: Document.Value,
+                    name: Document.Name
+                }}
+            )
+        );
+        ForAll(
+            IncidenceReportDataCardValue.Attachments As Document,
+            UploadFileToDocumentLibrary.Run(
+                "Request Incidence Reports",
+                ActiveRequestID,
+                4,
+                " ",
+                0,
+                0,
+                {file:{
+                    contentBytes: Document.Value,
+                    name: Document.Name
+                }}
+            )
+        );
+        
+        UpdateContext({
+            ctxCurrentLevel:varUpdatedRequest.CurrentLevel,
+            ctxNextPreset: LookUp(ApprovalPreset,Level= 1)
+        });
+     
+        If(Or(
+                varUpdatedRequest.Status.Value = "Returned",
+                varUpdatedRequest.Status.Value = "New"
+            ) && !ctxProcessError,
+            
+            If(varUpdatedRequest.Status.Value = "New",
+                With({
+                    newTaskPreset:LookUp(ApprovalPreset,Level = 1),
+                    TaskRequest: Patch('MVRequest Task',Defaults('MVRequest Task'),{
+                        Title: Concatenate("#",varRecord.ID, " ", varRecord.RegNumber, " ", varRecord.Make, " Level-",ctxNextPreset.Level," ", ctxNextPreset.LevelName," ", Text(varRecord.IncidenceDateTime, "yyyy-mmm-dd-hh-mm")),
+                        ApprovalLevel: 1,
+                        ParentRef: ActiveRequestID
+                    })
+                },
+                //Notify("Send out new the task email communication");
+                UpdateContext({
+                ctxApprovers: Concat(newTaskPreset.Approvers,Email,";"),
+                ctxEmailCC: Concat(newTaskPreset.EmailCC,Email,";"),
+                DueDate: Text(newReq_addweekdays.NextDueDate(Today(),2),"dd-mm-yyyy"),
+                ctxApproverNames: Concat(newTaskPreset.Approvers,DisplayName,", "),
+                ctxMailSubject: TaskRequest.Title,
+                ctxMailBody:$"<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>You have a request pending for task #{TaskRequest.ID} and DueDate is <strong>{DueDate}</strong></p>" & 
+                $"
+                <table>
+                <tr><td><strong>Initiator</strong></td><td>{varUpdatedRequest.'Created By'.DisplayName}<br/>{varUpdatedRequest.'Created By'.Email}</td></tr>
+                <tr><td><strong>Incidence date</strong></td><td>{varUpdatedRequest.IncidenceDate}</td></tr>
+                <tr><td><strong>Damage description</strong></td><td>{varUpdatedRequest.IncidenceDamageDes}</td></tr>
+                </table>
+                "
+            });
+
+            EmailMonster.Run(ctxMailSubject,ctxMailBody,ctxEmailCC,ctxApproverNames,ctxApprovers,MyProfile.Mail)
+                )//end if with new request check block
+                ,
+            With({
+                taskPreset:LookUp(ApprovalPreset,Level = ctxCurrentLevel),
+                returnedTask: Patch('MVRequest Task',
+                LookUp('MVRequest Task', ApprovalLevel=ctxCurrentLevel && ParentRef= ActiveRequestID),{Status:{Value: "Pending", ID: "Pending"}})
+            },
+                //Notify("Send out the email communication");
+                UpdateContext({
+                ctxApprovers: Concat(taskPreset.Approvers,Email,";"),
+                ctxEmailCC: Concat(taskPreset.EmailCC,Email,";"),
+                DueDate: Text(newReq_addweekdays.NextDueDate(Today(),2),"dd-mm-yyyy"),
+                ctxApproverNames: Concat(taskPreset.Approvers,DisplayName,", "),
+                ctxMailSubject: returnedTask.Title,
+                ctxMailBody:$"<p style='font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;'>You have a request pending for task #{returnedTask.ID} and DueDate is <strong>{DueDate}</strong></p>" & 
+                $"
+                <table>
+                <tr><td><strong>Initiator</strong></td><td>{varUpdatedRequest.'Modified By'.DisplayName}<br/>{varUpdatedRequest.'Modified By'.Email}</td></tr>
+                <tr><td><strong>Incidence date</strong></td><td>{varUpdatedRequest.IncidenceDate}</td></tr>
+                <tr><td><strong>Damage description</strong></td><td>{varUpdatedRequest.IncidenceDamageDes}</td></tr>
+                </table>
+                "
+            });
+
+            EmailMonster.Run(ctxMailSubject,ctxMailBody,ctxApprovers,ctxApproverNames,ctxApprovers,MyProfile.Mail)
+            )
+            
+        ); //endif block for status check
+
+        Patch('MVRequest List',varUpdatedRequest,
+            If(varUpdatedRequest.CurrentLevel > 1,
+                {Status:{Value: "InProgress", ID: "InProgress"}},
+                {
+                    Status:{Value: "InProgress", ID: "InProgress"},
+                    CurrentLevel:1,
+                    NextLevel:2
+                }
+            )
+        )
+    
+    ) //endif block for Status type check
+)//endif block for successful mvrequest post
+); //endwith parent block
+
+If(!ctxProcessError,
+    //Reset Items
+    Concurrent(
+        Refresh('MVRequest List'),
+        Refresh('MVRequest Task'),
+        Reset(IncidenceReportDataCardValue),
+        Reset(QuotationDataCardValue),
+        Set(ActiveRequestID, Blank()),
+        UpdateContext({
+            varRecord:Blank(),
+            ctxNotifyTitle: "Request submitted successfully",
+            ctxNotifyDesc: "Your request has been submitted. 
+    Keep monitoring approval progress via Pending Approval tab and email for final approval",
+            showPop:!showPop
+        }),
+        Set(showLoading, false)
+    );
+    
+    Set(varRecord,Blank());
+    //Navigate(HomeScreen) //deprecaited for popup
+,
+Navigate(NewRequestScreen,ScreenTransition.None,{varRecord:LookUp(AddColumns('MVRequest List', 
+        "DriverInfo",LookUp('MVRequest Driver List',ParentRefID=ActiveRequestID),
+        "VendorInfo",Sort(Filter('MVRequest Vendors',ParentRef=ActiveRequestID), Order,SortOrder.Ascending),
+        "TaskList",Sort(Filter('MVRequest Task',ParentRef=ActiveRequestID), Created,SortOrder.Descending),
+        "ThirdPartyInfo",LookUp('MVRequest ThirdParty Driver',ParentRef=ActiveRequestID)
+        ), ID=ActiveRequestID)});
+        UpdateContext({
+        varRecord:Blank(),
+        ctxNotifyIcon:'x-circleX-Icon',
+        ctxNotifyTitle: "Failed to save request",
+        ctxNotifyDesc: "We are unable to save your progress at this moment.
+Check the errors or network and try again",
+        showPop:!showPop
+    });
+    Set(varRecord,Blank());
+    Set(showLoading, false);
+);

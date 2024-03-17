@@ -1,0 +1,4 @@
+If(cmp_RequestApproval.ApprovalItem.Level = 1,
+Filter(Choices([@'MVRequest Task'].Status),Value<>"Pending",Value <> cmp_RequestApproval.ApprovalItem.Task.Status.Value,Value<>"Rejected"),
+Filter(Choices([@'MVRequest Task'].Status),Value<>"Pending",Value <> cmp_RequestApproval.ApprovalItem.Task.Status.Value)
+)

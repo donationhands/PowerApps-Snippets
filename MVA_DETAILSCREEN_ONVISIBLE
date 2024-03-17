@@ -1,0 +1,70 @@
+Set(showLoading, true);
+Set(varRecord, varRecord);
+/*
+ClearCollect(RequestImageCollection, RenameColumns(ShowColumns(Filter('MVRequest Documents',DocumentType=0 ||DocumentType=1, ParentRefID=varRecord.ID),"ID","{Link}","{Name}","Category","ParentRefID","TrackID","OData__ExtendedDescription","DocumentType"),"OData__ExtendedDescription","Description","{Link}","ImageLink"));
+*/
+Concurrent(
+    Set(ApproverPopupNotify,false),
+    Set(DetailPopupNotify,false),
+    UpdateContext({
+        ActiveTab:Coalesce(ActiveTab,1),showPop:false,
+        ctxApproverMode: If(And(PageTitle="Pending On Me",IsApprover,Not(varRecord.Status.Value in ["Approved","Rejected", "Terminated"])),true,false)
+    }),
+    Set(ActiveDetailsRecord,
+    {
+        StaffID:varRecord.StaffID,
+        StaffName: varRecord.StaffName,
+        StaffGrade: varRecord.StaffGrade,
+        StaffPhone: varRecord.StaffPhone,
+        GenRelieveOfficer: varRecord.GenRelieveOfficer,
+        GenRelieveOfficerPhone: varRecord.GenRelieveofficerPhone,
+        Branch:varRecord.Branch,
+        VRegNumber: varRecord.RegNumber,
+        VMake: varRecord.Make,
+        DriverStaffID: Text(varRecord.DriverInfo.StaffID),
+        DriverName: varRecord.DriverInfo.Name,
+        DriverPhone: Text(varRecord.DriverInfo.Phone),
+        IncidenceDate: Text(IncidenceDatePicker.SelectedDate, "dd/mm/yyyy"),
+        IncidenceDateTime: Text(varRecord.IncidenceDateTime,"hh:mm AM/PM"),
+        IncidencePlace: varRecord.IncidencePlace,
+        IncidenceDamageDesc: varRecord.IncidenceDamageDes,
+        TDriverName: varRecord.ThirdPartyInfo.Name,
+        TDriverMake: varRecord.ThirdPartyInfo.Make,
+        TDriverRegNumber: varRecord.ThirdPartyInfo.RegistrationNumber,
+        TDriverRegStatus: If(varRecord.ThirdPartyInfo.RegistrationStatus, "Yes","No"),
+        TDriverInsured: If(varRecord.ThirdPartyInfo.Insured, "Yes","No"),
+        ThirdPartyChecked:If(varRecord.ThirdPartyCheck,true,false)
+    }
+    )
+);
+
+Set(TaskIDs, []);
+If(Or(ctxApproverMode,varRecord.Status.Value in ["Approved","Rejected", "Terminated"]),
+    Set(TaskIDs,ShowColumns(Filter('MVRequest Task',ParentRef=varRecord.ID),"ApprovalLevel"))
+);
+
+ClearCollect(ApprovalHistory,
+    ShowColumns(
+    Filter(
+        AddColumns('MVApproval Preset',
+            "Task", LookUp('MVRequest Task',ParentRef=varRecord.ID && ApprovalLevel='MVApproval Preset'[@Level])
+        )
+        ,If(Or(ctxApproverMode,varRecord.Status.Value in ["Approved","Rejected", "Terminated"]),Level in TaskIDs, Level<>0)
+    ),
+    "ID",
+    "Level",
+    "LevelName",
+    "Approvers",
+    "EmailCC",
+    "ShortDescription",
+    "Task"
+    )
+);
+
+Concurrent(
+UpdateContext({
+    approvalhistoryHeight:((If(Mod(CountRows(ApprovalHistory),2)=0,CountRows(ApprovalHistory),CountRows(ApprovalHistory)+1)/2 * (250+ 48))-50) + If(ctxApproverMode,850,0)}),
+ClearCollect(TaskDocs, ShowColumns(Filter('MVRequest Documents',DocumentType=2, ParentRefID=varRecord.ID),"ID","{Link}","{Name}","ParentRefID","TrackID","DocumentType")),
+ClearCollect(colIncidenceQuotations,Filter('MVRequest Documents',DocumentType=3||DocumentType=4,ParentRefID=varRecord.ID))
+);
+Set(showLoading, false);

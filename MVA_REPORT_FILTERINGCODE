@@ -1,0 +1,45 @@
+ShowColumns(
+    FirstN(
+        SortByColumns(
+            Filter(
+                AddColumns(
+                    'MVRequest List',
+                    "DriverInfo",
+                    LookUp(
+                        'MVRequest Driver List',
+                        ID = 'MVRequest List'[@DriverRef].Id
+                    )
+                ),
+                Or(
+                    IsBlank(StatusDropdownCanvas.Selected.Value),
+                    Status.Value = StatusDropdownCanvas.Selected.Value
+                ),
+                Or(IsBlank(PlaceDropdownCanvas.Selected.Value),IncidencePlace = PlaceDropdownCanvas.Selected.Value),
+                Or(IsBlank(AmtDropdownCanvas.Selected.Value),AmountPaid = AmtDropdownCanvas.Selected.Value),
+                Or(
+                    IsBlank(RequestDatePickerCanvas.SelectedDate),
+                Text(Created,"yyyy/mm/dd") = Text(RequestDatePickerCanvas.SelectedDate,"yyyy/mm/dd"
+                )),
+                Or(IsBlank(IncidenceDatePickerCanvas.SelectedDate) || Text(
+                    IncidenceDate,
+                    "yyyy/mm/dd"
+                ) = Text(
+                    IncidenceDatePickerCanvas.SelectedDate,
+                    "yyyy/mm/dd"
+                )),
+                Or(IsBlank(ReqIDTextInput.Text)) || ID = Value(ReqIDTextInput.Text)
+            ),
+            "Created",
+            SortOrder.Descending
+        ),
+        499
+    ),
+    "ID",
+    "Status",
+    "CurrentLevel",
+    "AmountPaid",
+    "Created",
+    "IncidenceDate",
+    "DriverRef",
+    "DriverInfo"
+)

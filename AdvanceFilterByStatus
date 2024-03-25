@@ -21,3 +21,45 @@ Switch(PageTitle,
 ShowColumns(FirstN(SortByColumns(
 Filter(AddColumns('MVRequest List', "DriverInfo", LookUp('MVRequest Driver List',ID='MVRequest List'[@DriverRef].Id)),'Created By'.Email=MyProfile.Mail && (Status.Value in ctxFilterStatus))
 ,"Created",SortOrder.Descending),499),"ID","Status","CurrentLevel","AmountPaid","Created","IncidenceDate","DriverRef","DriverInfo")
+
+
+side menu filters
+
+Filter(cmp_PrimarySideMenu.MenuItems,Or(Cat=2))
+
+//Onselect for general PageTitle
+If(
+    ThisItem.Screen = cmp_PrimarySideMenu.ActiveScreen,
+    true,
+    Concurrent(
+        Set(PageTitle,ThisItem.Name),
+        Set(showLoading, true)
+    );
+    Navigate(
+        ThisItem.Screen,
+        ScreenTransition.Fade
+    )
+);
+
+
+//for advance filtering
+
+If(
+    ThisItem.Screen = cmp_PrimarySideMenu.ActiveScreen && ThisItem.Name=ActiveFilter,
+    true,
+    Concurrent(
+    Set(PageTitle,ThisItem.Name),
+    Set(ActiveFilter,ThisItem.Name)
+    );
+    Navigate(ThisItem.Screen,ScreenTransition.Fade);
+);
+
+Set(ctxFilterStatus,
+    Switch(PageTitle,
+        "Pending Approval","New InProgress Returned",
+        "Saved Requests","Draft",
+        "Approved Requests","Approved",
+        "Rejected By Me","Rejected Terminated",
+        ""
+    )
+); 

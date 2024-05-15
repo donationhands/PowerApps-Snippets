@@ -1,0 +1,70 @@
+FileDataURIImageHolder ON Image ATTRIBUTE: 
+Last(FileAttachment.Attachments).Value
+
+//ON ADDFILE ATTACHMENT CONTROL
+UpdateContext({fileName: First(Self.Attachments).Name});
+
+If(
+    Not((".xlsx" in fileName) || (".xls" in fileName)),
+    Notify(
+        "Only Excel File type with .xls or .xlsx extention is allowed",
+        NotificationType.Error,
+        10000
+    );
+    UpdateContext({formErrorStatus: true});
+    Reset(Self),
+    Set(
+        VarDemoFromAttControl,
+        JSON(
+            FileDataURIImageHolder.Image,
+            JSONFormat.IncludeBinaryData
+        )
+    );
+    Set(
+        varBase64ONly,
+        Mid(
+            VarDemoFromAttControl,
+            Find(
+                ",",
+                VarDemoFromAttControl
+            ) + 1,
+            Len(VarDemoFromAttControl) - Find(
+                ",",
+                VarDemoFromAttControl
+            ) - 1
+        )
+    );
+    UpdateContext({formErrorStatus: false});
+);
+
+//ON UPLOAD BUTTON, A RECORD IS CREATED AND THE ID IS GOTTEN IN THE VARIABLE ctxWKF_ID
+UpdateContext({loading:true});
+Set(importedData,PAppsExcelBulkImport.Run(Now() & Last(FileAttachment.Attachments).Name, varBase64ONly,ctxWKF_ID).responsedata);
+
+ClearCollect(
+    AllImportData,
+    ForAll(
+        Table(ParseJSON(importedData)),
+        {
+            Title: Text(Value.Title),
+            EventName: Text(Value.EventName),
+            EventCount: Value(If(IsBlank(Value.EventCount),0,Value.EventCount)),
+            EventType: Text(Value.EventType),
+            Revenue: Value(If(IsBlank(Value.Revenue),0,Value.Revenue)),
+            IncurredCost: Value(If(IsBlank(Value.IncurredCost),0,Value.IncurredCost)),
+            Community: Text(Value.Community),
+            LGA: Text(Value.LGA),
+            EventStartDate: DateValue(Value.EventStartDate),
+            EventEndDate: DateValue(Value.EventEndDate),
+            DateReported: DateValue(Value.DateReported),
+            KPI: Text(Value.KPI),
+            WKF_ID: Value(Value.WKF_ID),
+            ID:Blank(),
+            Created: Blank()
+        }
+    )
+);
+
+Reset(FileAttachment);
+UpdateContext({ctxVarRecord: LookUp(POC_WorkItem_List, ID=ctxWKF_ID), loading:false});
+Navigate(DataSpreedSheetScreen,ScreenTransition.Fade,{ctxWKF_ID:ctxWKF_ID, ctxImportedData:true, varRecord: ctxVarRecord});

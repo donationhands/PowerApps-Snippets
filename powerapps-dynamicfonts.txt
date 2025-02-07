@@ -1,0 +1,55 @@
+APP.Formulas
+
+// FONTS
+fxFont = {
+    Heading: Font.'Lato Black',
+    Body: Font.Lato,
+    Size: {
+        Body: 12,
+        Subtitle: 16,
+        Subtitle3: 14,
+        Title: 16
+    },
+    SizeMD: {
+        Body: 14,
+        Subtitle: 18,
+        Subtitle3: 16,
+        Title: 20
+    },
+    SizeL: {
+        Body: 16,
+        Subtitle: 20,
+        Subtitle3: 18,
+        Title: 24
+    },
+    LineHeight: 1.5
+};
+
+MultiplyNumbers(Number1:Number, Number2:Number):Number = Number1 * Number2;
+fxGetFontSize(ScreenSizeFontSize:Number):Number = Switch(ScreenSizeFontSize,
+                                                        11,fxFont.Size.Title,
+                                                        12,fxFont.Size.Subtitle,
+                                                        13,fxFont.Size.Subtitle3,
+                                                        14,fxFont.Size.Body,
+                                                        21,fxFont.Size.Title,
+                                                        22,fxFont.Size.Subtitle,
+                                                        23,fxFont.Size.Subtitle3,
+                                                        24,fxFont.Size.Body,
+                                                        31,fxFont.SizeMD.Title,
+                                                        32,fxFont.SizeMD.Subtitle,
+                                                        33,fxFont.SizeMD.Subtitle3,
+                                                        34,fxFont.SizeMD.Body,
+                                                        41,fxFont.SizeL.Title,
+                                                        42,fxFont.SizeL.Subtitle,
+                                                        43,fxFont.SizeL.Subtitle3,
+                                                        44,fxFont.SizeL.Body,
+                                                        fxFont.SizeMD.Body
+                                                    );
+
+USAGE
+fxGetFontSize(Concatenate(Screen1.Size,1))
+fxGetFontSize(Concatenate(Screen1.Size,2))
+fxGetFontSize(Concatenate(Screen1.Size,3))
+fxGetFontSize(Concatenate(Screen1.Size,4))
+
+Text(Sum(TextInput2.Text * TextInput3.Text),"$#,###0.00")

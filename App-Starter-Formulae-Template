@@ -1,0 +1,188 @@
+fxPrimaryMenuList = Table(
+    {
+        Name: "Home",
+        Icon: Icon.OfficeBuilding,
+        ToolTip: "A country exist gate pass",
+        Order: 1,
+        Type: 0,
+        Scren: 'Home Screen',
+        Link: ""
+    },
+    {
+        Name: "Upload data",
+        Icon: Icon.Airplane,
+        ToolTip: "Upload peer comparison data",
+        Order: 1,
+        Type: 0,
+        Scren: UploadScreen
+    },
+    {
+        Name: "Data Analyzer",
+        Icon: Icon.Database,
+        ToolTip: "Data preview for correctness",
+        Order: 2,
+        Type: 0,
+        Scren: DataListingScreen,
+        Link: ""
+    },
+    {
+        Name: "Add users",
+        Icon: Icon.AddUser,
+        ToolTip: "People are the core reason why a country exist",
+        Order: 2,
+        Type: 0,
+        Scren: App.ActiveScreen,
+        Link: ""
+    },
+    {
+        Name: "Oil production",
+        Icon: Icon.Manufacture,
+        ToolTip: "Manufactor the key to sustanable economy",
+        Order: 2,
+        Type: 0,
+        Scren: App.ActiveScreen,
+        Link: ""
+    },
+    {
+        Name: "Review documents",
+        Icon: Icon.DocumentWithContent,
+        ToolTip: "Digital asset the wise secret",
+        Order: 1,
+        Type: 1,
+        Scren: App.ActiveScreen,
+        Link: "https://google.com"
+    }
+);
+
+// FONTS
+fxFont = {
+    Heading: Font.'Lato Black',
+    Body: Font.Lato,
+    Size: {
+        Body: 12,
+        Subtitle: 16,
+        Subtitle3: 14,
+        Title: 16
+    },
+    SizeMD: {
+        Body: 14,
+        Subtitle: 18,
+        Subtitle3: 16,
+        Title: 20
+    },
+    SizeL: {
+        Body: 16,
+        Subtitle: 20,
+        Subtitle3: 18,
+        Title: 24
+    },
+    LineHeight: 1.5
+};
+MultiplyNumbers(Number1:Number, Number2:Number):Number = Number1 * Number2;
+fxGetFontSize(ScreenSizeFontSize:Number):Number = Switch(ScreenSizeFontSize,
+                                                        11,fxFont.Size.Title,
+                                                        12,fxFont.Size.Subtitle,
+                                                        13,fxFont.Size.Subtitle3,
+                                                        14,fxFont.Size.Body,
+                                                        21,fxFont.Size.Title,
+                                                        22,fxFont.Size.Subtitle,
+                                                        23,fxFont.Size.Subtitle3,
+                                                        24,fxFont.Size.Body,
+                                                        31,fxFont.SizeMD.Title,
+                                                        32,fxFont.SizeMD.Subtitle,
+                                                        33,fxFont.SizeMD.Subtitle3,
+                                                        34,fxFont.SizeMD.Body,
+                                                        41,fxFont.SizeL.Title,
+                                                        42,fxFont.SizeL.Subtitle,
+                                                        43,fxFont.SizeL.Subtitle3,
+                                                        44,fxFont.SizeL.Body,
+                                                        fxFont.SizeMD.Body
+                                                    );
+
+//LABELS
+fxLabels = {
+    EN: {        
+        Upload: "Upload file",
+        Submit: "Save",
+        Back: "Go back",
+        Cancel: "Cancel"
+    },
+    AR: {        
+        Upload: "تحميل الملف",
+        Submit: "أنقذ",
+        Back: "الرجوع للخلف",
+        Cancel: "إلغاء الأمر"
+    }
+};
+// COLORS
+fxColor = {
+    // Named Color Values
+    Danger: ColorValue("#dc3545"),
+    Info: ColorValue("#0dcaf0"),
+    Primary: ColorValue("#0d6efd"),
+    Secondary: ColorValue("#6c757d"),
+    Success: ColorValue("#198754"),
+    Warning: ColorValue("#ffc107"),
+
+    // Default Colors Values
+    Blue: ColorValue("#0d6efd"),
+    Indigo: ColorValue("#6610f2"),
+    Purple: ColorValue("#6f42c1"),
+    Pink: ColorValue("#d63384"),
+    Red: ColorValue("#dc3545"),
+    Orange: ColorValue("#fd7e14"),
+    Yellow: ColorValue("#ffc107"),
+    Green: ColorValue("#198754"),
+    Teal: ColorValue("#20c997"),
+    Cyan: ColorValue("#0dcaf0"),
+    White: ColorValue("#ffffff"),
+    Grey: ColorValue("#6c757d"),
+    GreyDark: ColorValue("#343a40"),
+
+    // Grey-Shade Color Values
+    Grey100: ColorValue("#f8f9fa"),
+    Grey200: ColorValue("#e9ecef"),
+    Grey300: ColorValue("#dee2e6"),
+    Grey400: ColorValue("#ced4da"),
+    Grey500: ColorValue("#adb5bd"),
+    Grey600: ColorValue("#6c757d"),
+    Grey700: ColorValue("495057"),
+    Grey800: ColorValue("#343a40"),
+    Grey900: ColorValue("#212529")
+};
+
+// Get logged-on user object
+fxLoggedOnUser = Office365Users.MyProfileV2();
+// Get logged-on users profile image
+fxLoggedOnUserImg = Office365Users.UserPhotoV2(fxLoggedOnUser.id);
+
+// ENVIRONMENT VARIABLES
+fxEnvironmentVariable = {
+    EnvironmentURL: LookUp(
+        'Environment Variable Values',
+        'Environment Variable Definition'.'Display Name' = "ENVIRONMENT URL"
+    ).Value,
+    EnvironmentName: LookUp(
+        'Environment Variable Values',
+        'Environment Variable Definition'.'Display Name' = "ENVIRONMENT NAME"
+    ).Value
+};
+
+// URL PARAMETERS
+fxUrlParameter = {
+    RecordType: Coalesce(Param("recordtype"),""),
+    RecordId: Coalesce(Param("recordid"),0),
+    LaunchSource: Coalesce(Param("launchsource"), "Unknown"),
+    DebugMode: And(
+        Not(IsBlank(Param("debugmode"))),
+        Lower(Param("DebugMode"))="true"
+    )
+};
+
+// SECURITY ROLES
+fxSecurityRoles = LookUp(
+    Users,
+    'User Name' = Lower(User().Email)
+).'Security Roles (systemuserroles_association)'.Name;
+
+fxIsUserManager = "Basic User (Smart Demand Evaluator)" in fxSecurityRoles.Name;

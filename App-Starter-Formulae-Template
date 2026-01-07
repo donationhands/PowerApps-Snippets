@@ -55,6 +55,7 @@ fxPrimaryMenuList = Table(
 );
 
 // FONTS
+//key 1 = Title, 2 = Subtitle, 3 = Subtitle3, 4 = Body
 fxFont = {
     Heading: Font.'Lato Black',
     Body: Font.Lato,
@@ -79,6 +80,7 @@ fxFont = {
     LineHeight: 1.5
 };
 MultiplyNumbers(Number1:Number, Number2:Number):Number = Number1 * Number2;
+//Enter the desired screen concatenate with fontsize key, e.g., Screen Size = 4 and FontSize is Title equal 41
 fxGetFontSize(ScreenSizeFontSize:Number):Number = Switch(ScreenSizeFontSize,
                                                         11,fxFont.Size.Title,
                                                         12,fxFont.Size.Subtitle,

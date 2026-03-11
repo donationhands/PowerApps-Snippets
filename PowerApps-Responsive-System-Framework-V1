@@ -1,0 +1,503 @@
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  COLOR CONVERSION SUITE — Dynamic Runtime Converters
+  ══════════════════════════════════════════════════════════════════
+*/
+
+// ── HEX — Color object → "#RRGGBB" ────────────────────────────
+fxColor2Hex(ColorValue: Color): Text = 
+    Match(
+        JSON(ColorValue, JSONFormat.IgnoreUnsupportedTypes),
+        "#[a-fA-F0-9]{6}"
+    ).FullMatch;
+
+
+// ── Channel Extraction — Color object → individual R, G, B ─────
+fxColorRed(ColorValue: Color): Number = 
+    With(
+        { hex: fxColor2Hex(ColorValue) },
+        Hex2Dec(Mid(hex, 2, 2))
+    );
+
+fxColorGreen(ColorValue: Color): Number = 
+    With(
+        { hex: fxColor2Hex(ColorValue) },
+        Hex2Dec(Mid(hex, 4, 2))
+    );
+
+fxColorBlue(ColorValue: Color): Number = 
+    With(
+        { hex: fxColor2Hex(ColorValue) },
+        Hex2Dec(Mid(hex, 6, 2))
+    );
+
+
+// ── RGB CSS String — Color object → "rgb(R,G,B)" ──────────────
+fxColor2Rgb(ColorValue: Color): Text = 
+    With(
+        { hex: fxColor2Hex(ColorValue) },
+        "rgb(" &
+            Hex2Dec(Mid(hex, 2, 2)) & "," &
+            Hex2Dec(Mid(hex, 4, 2)) & "," &
+            Hex2Dec(Mid(hex, 6, 2)) &
+        ")"
+    );
+
+
+// ── RGBA CSS String — Color object → "rgba(R,G,B,A)" ──────────
+fxColor2Rgba(ColorValue: Color, Alpha: Number): Text = 
+    With(
+        { hex: fxColor2Hex(ColorValue) },
+        "rgba(" &
+            Hex2Dec(Mid(hex, 2, 2)) & "," &
+            Hex2Dec(Mid(hex, 4, 2)) & "," &
+            Hex2Dec(Mid(hex, 6, 2)) & "," &
+            Text(Alpha) &
+        ")"
+    );
+
+
+// ── Opacity Helper — Apply opacity to any Color object ─────────
+fxColorWithOpacity(ColorValue: Color, Opacity: Number): Text = fxColor2Rgba(ColorValue, Opacity);
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  APP THEME — TRIPLE FORMAT (Color Object + RGB Values + CSS String)
+  ══════════════════════════════════════════════════════════════════
+  
+  Native controls:    AppTheme.BrandPrimary.Color      → RGBA color object
+  RGB channel access:  AppTheme.BrandPrimary.R / .G / .B / .A
+  HtmlText controls:   AppTheme.BrandPrimary.Css       → "#170A5E" string
+
+  Single source of truth — change the R,G,B,A values and both
+  the Color object and Css string are derived from them.
+  ══════════════════════════════════════════════════════════════════
+*/
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  APP THEME — Color Objects + Pre-computed CSS Strings
+  ══════════════════════════════════════════════════════════════════
+
+  Native controls:    AppTheme.BrandPrimary.Color
+  HtmlText controls:  AppTheme.BrandPrimary.Css
+  Dynamic opacity:    fxColorWithOpacity(AppTheme.BrandPrimary.Color, 0.1)
+  ══════════════════════════════════════════════════════════════════
+*/
+
+AppThemeV2 = {
+    // ── Core Brand Identity (60/30/10 Rule) ────────────────────
+    BrandPrimary:    { Color: RGBA(23, 10, 94, 1),       Css: "#170A5E"                },
+    BrandSecondary:  { Color: RGBA(46, 227, 227, 1),     Css: "#2EE3E3"                },
+    BrandAccent:     { Color: RGBA(181, 220, 111, 1),    Css: "#B5DC6F"                },
+
+    // ── Semantic Colors ────────────────────────────────────────
+    StatusSuccess:   { Color: RGBA(16, 185, 129, 1),     Css: "#10B981"                },
+    StatusWarning:   { Color: RGBA(240, 235, 100, 1),    Css: "#F0EB64"                },
+    StatusError:     { Color: RGBA(250, 147, 122, 1),    Css: "#FA937A"                },
+    StatusInfo:      { Color: RGBA(25, 118, 210, 1),     Css: "#1976D2"                },
+
+    // ── Foundation Colors ──────────────────────────────────────
+    Surface:         { Color: RGBA(255, 255, 255, 1),    Css: "#FFFFFF"                },
+    OnSurface:       { Color: RGBA(0, 0, 0, 1),          Css: "#000000"                },
+
+    // ── Text & Content Hierarchy ───────────────────────────────
+    TextPrimary:     { Color: RGBA(31, 41, 55, 1),       Css: "#1F2937"                },
+    TextSecondary:   { Color: RGBA(107, 114, 128, 1),    Css: "#6B7280"                },
+    TextTertiary:    { Color: RGBA(156, 163, 175, 1),    Css: "#9CA3AF"                },
+
+    // ── UI Elements ────────────────────────────────────────────
+    BorderDefault:   { Color: RGBA(229, 231, 235, 1),    Css: "#E5E7EB"                },
+    BorderSubtle:    { Color: RGBA(243, 244, 246, 1),    Css: "#F3F4F6"                },
+    BackgroundMuted: { Color: RGBA(246, 246, 248, 1),    Css: "#F6F6F8"                },
+
+    // ── Sidebar ────────────────────────────────────────────────
+    SidebarBg:       { Color: RGBA(23, 10, 94, 1),       Css: "#170A5E"                },
+    SidebarHover:    { Color: RGBA(35, 20, 120, 1),      Css: "#231478"                },
+    SidebarActive:   { Color: RGBA(181, 220, 111, 0.15), Css: "rgba(181,220,111,0.15)" }
+};
+
+//LABELS
+fxLabels = {
+    EN: {        
+        Greeting: "Welcome back",
+        Upload: "Upload file",
+        Submit: "Save",
+        Back: "Go back",
+        Cancel: "Cancel",
+        MenuHome: "Home",
+        MenuTemplate: "Template",
+        MenuCarListing: "Car Listing",
+        MenuCarListing2: "Cars",
+        MenuBooking: "New Booking",
+        MenuBooking2: "Booking"
+    },
+    AR: {
+        Greeting: "مرحبًا بعودتك",     
+        Upload: "تحميل الملف",
+        Submit: "أنقذ",
+        Back: "الرجوع للخلف",
+        Cancel: "إلغاء الأمر",
+        MenuHome: "بيت",
+        MenuTemplate: "صفحة",
+        MenuCarListing: "قائمة السيارات",
+        MenuBooking: "حجز جديد",
+        MenuBooking2: "الحجز"
+    }
+};
+
+// COLORS
+fxColor = {
+    // Named Color Values
+    Danger: ColorValue("#dc3545"),
+    Info: ColorValue("#0dcaf0"),
+    Primary: ColorValue("#0d6efd"),
+    Secondary: ColorValue("#6c757d"),
+    Success: ColorValue("#198754"),
+    Warning: ColorValue("#ffc107"),
+
+    // Default Colors Values
+    Blue: ColorValue("#0d6efd"),
+    Indigo: ColorValue("#6610f2"),
+    Purple: ColorValue("#6f42c1"),
+    Pink: ColorValue("#d63384"),
+    Red: ColorValue("#dc3545"),
+    Orange: ColorValue("#fd7e14"),
+    Yellow: ColorValue("#ffc107"),
+    Green: ColorValue("#198754"),
+    Teal: ColorValue("#20c997"),
+    Cyan: ColorValue("#0dcaf0"),
+    White: ColorValue("#ffffff"),
+    Grey: ColorValue("#6c757d"),
+    GreyDark: ColorValue("#343a40"),
+
+    // Grey-Shade Color Values
+    Grey100: ColorValue("#f8f9fa"),
+    Grey200: ColorValue("#e9ecef"),
+    Grey300: ColorValue("#dee2e6"),
+    Grey400: ColorValue("#ced4da"),
+    Grey500: ColorValue("#adb5bd"),
+    Grey600: ColorValue("#6c757d"),
+    Grey700: ColorValue("495057"),
+    Grey800: ColorValue("#343a40"),
+    Grey900: ColorValue("#212529")
+};
+
+// Get logged-on user object
+fxLoggedOnUser = Office365Users.MyProfileV2();
+// Get logged-on users profile image
+fxLoggedOnUserImg = Office365Users.UserPhotoV2(fxLoggedOnUser.id);
+
+fx12HoursTimePickerList = With(
+    { slots: Sequence(24) },       // 24 time slots at 1-hour intervals
+    AddColumns(
+        slots,
+        TimeLabel,
+        Text(
+            Time(
+                Value - 1,        // hour (0–23)
+                0,                // minute always 00
+                0
+            ),
+            "[$-en-US]hh:mm AM/PM"   // 12-hour format
+        ),
+        TimeValue,
+        Time(Value - 1,0,0),
+        Time24HoursValue,
+        Text(Time(Value - 1,0,0),"[$-en-GB]HH")
+
+    )
+);
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  RFS-INSPIRED RESPONSIVE TYPOGRAPHY FRAMEWORK FOR POWERAPPS
+  Based on: https://getbootstrap.com/docs/5.0/getting-started/rfs/
+  Author: Joseph Ojonugwa Ameh - https://learncodeprofit.com
+  ══════════════════════════════════════════════════════════════════
+
+  Bootstrap RFS Formula (adapted for PowerApps discrete breakpoints):
+    fs_min  = BaseValue + (DesignSize - BaseValue) / Factor
+    fs_diff = DesignSize - fs_min
+    fluid   = fs_min + fs_diff * (ScreenWidth / Breakpoint)
+
+  Since PowerApps lacks calc()/vw, we evaluate the formula at known
+  screen widths rather than using hardcoded size tables.
+
+  USAGE:
+    fxFontSizeV2(App.Width, FontType.Title)
+    fxFontSizeV2(App.Width, FontType.Body)
+*/
+
+// ── RFS Configuration ──────────────────────────────────────────
+fxRFS = {
+    BaseValue:   12,        // Minimum floor (px) — font never goes below this
+    Breakpoint:  1200,      // At/above this width, fonts hit their full design size
+    Factor:      6,        // Compression strength (higher = less shrinking on small screens)
+    RemValue:    16          // Base rem equivalent in px
+};
+
+// ── Design Sizes (the "max" font sizes, reached at Breakpoint) ──
+fxTypographyV2 = {
+    Heading:    Font.'Open Sans',
+    Body:       Font.Lato,
+    LineHeight: 1.5,
+    // Design sizes in px — these are the sizes at fxRFS.Breakpoint and above
+    Title:      32,
+    Subtitle:   24,
+    Subtitle3:  20,
+    BodySize:   16,
+    SmallSize:  12
+};
+
+// ── Font Type Enum ─────────────────────────────────────────────
+// Use these as the second argument to fxFontSize
+// FontType = { Title: 1, Subtitle: 2, Subtitle3: 3, Body: 4, Small: 5 }
+
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  fxFontSize — RFS-style fluid font calculation
+  
+  Parameters:
+    ScreenWidth : Number  — App.Width (actual screen width in px)
+    fontType    : Number  — FontType enum (1=Title, 2=Subtitle, 3=Subtitle3, 4=Body)
+  
+  Returns: Number (rounded font size in px)
+
+  Formula per RFS:
+    If DesignSize <= BaseValue → return DesignSize (too small to rescale)
+    If ScreenWidth >= Breakpoint → return DesignSize (full size)
+    Otherwise:
+      fs_min = BaseValue + (DesignSize - BaseValue) / Factor
+      fs_diff = DesignSize - fs_min
+      result = fs_min + fs_diff * (ScreenWidth / Breakpoint)
+  ══════════════════════════════════════════════════════════════════
+*/
+fxFontSizeV2(ScreenWidth: Number, fontType: Number): Number = 
+    With(
+        {
+            // Resolve the design size from fontType
+            designSize: Switch(
+                fontType,
+                1, fxTypographyV2.Title,
+                2, fxTypographyV2.Subtitle,
+                3, fxTypographyV2.Subtitle3,
+                4, fxTypographyV2.BodySize,
+                5, fxTypographyV2.SmallSize,
+                fxTypographyV2.BodySize
+            )
+        },
+        // If design size is at or below the base floor, no scaling needed
+        If(
+            designSize <= fxRFS.BaseValue,
+            designSize,
+            // If screen is at or above breakpoint, return full design size
+            If(
+                ScreenWidth >= fxRFS.Breakpoint,
+                designSize,
+                // RFS fluid calculation
+                With(
+                    {
+                        fsMin: fxRFS.BaseValue + (designSize - fxRFS.BaseValue) / fxRFS.Factor,
+                        fsDiff: designSize - (fxRFS.BaseValue + (designSize - fxRFS.BaseValue) / fxRFS.Factor)
+                    },
+                    // Round to nearest whole pixel
+                    Round(
+                        fsMin + fsDiff * (ScreenWidth / fxRFS.Breakpoint),
+                        0
+                    )
+                )
+            )
+        )
+    );
+
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  fxLineHeight — Computed line height for a given context
+  Returns pixel value: fontSize * lineHeightMultiplier
+  ══════════════════════════════════════════════════════════════════
+*/
+fxLineHeight(ScreenWidth: Number, fontType: Number): Number = 
+    Round(fxFontSize(ScreenWidth, fontType) * fxTypography.LineHeight, 0);
+
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  CUSTOM SVG ICON SYSTEM FOR POWERAPPS
+  ══════════════════════════════════════════════════════════════════
+  
+  Uses Image controls with SVG data URIs instead of HtmlText.
+  Supports dynamic color, sizing, and works with the existing
+  AppTheme and fxScale systems.
+
+  Image.Image = fxIcon(gblAppIcons.SearchIcon, AppTheme.BrandPrimary.Css)
+  Image.Width  = fxIconSize(App.Width, 2)
+  Image.Height = fxIconSize(App.Width, 2)
+  ══════════════════════════════════════════════════════════════════
+*/
+
+
+// ── SVG → Data URI Converter ───────────────────────────────────
+// Converts raw SVG string into a data URI that Image controls accept.
+// Replaces 'currentColor' with your desired CSS color string.
+//
+// Parameters:
+//   SvgMarkup  : Text — raw SVG string (with fill='currentColor')
+//   FillColor  : Text — CSS color string ("#170A5E", "rgb(23,10,94)", etc.)
+//
+// Returns: Text — "data:image/svg+xml;utf8, ..." ready for Image.Image
+
+fxIcon(SvgMarkup: Text, FillColor: Text): Text = 
+    "data:image/svg+xml;utf8," & 
+    EncodeUrl(
+        Substitute(SvgMarkup, "currentColor", FillColor)
+    );
+
+
+// ── Variant with dynamic size override ─────────────────────────
+// Replaces the width/height attributes in the SVG itself.
+// Useful when the SVG's internal dimensions need to match the container.
+//
+// Parameters:
+//   SvgMarkup  : Text — raw SVG string
+//   FillColor  : Text — CSS color string
+//   SizePx     : Number — desired pixel size (applied to both width & height)
+
+fxIconSized(SvgMarkup: Text, FillColor: Text, SizePx: Number): Text = 
+    "data:image/svg+xml;utf8," & 
+    EncodeUrl(
+        Substitute(
+            Substitute(
+                Substitute(SvgMarkup, "currentColor", FillColor),
+                "width='16'", "width='" & SizePx & "'"
+            ),
+            "height='16'", "height='" & SizePx & "'"
+        )
+    );
+
+
+// ── Variant using theme Color objects directly ─────────────────
+// Combines fxColor2Hex with fxIcon so you can pass Color objects.
+
+fxIconThemed(SvgMarkup: Text, ColorValue: Color): Text = 
+    fxIcon(SvgMarkup, fxColor2Hex(ColorValue));
+
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  ICON LIBRARY — Organized by category
+  
+  All SVGs use fill='currentColor' so color is injected at runtime.
+  Source: Bootstrap Icons (https://icons.getbootstrap.com)
+  ══════════════════════════════════════════════════════════════════
+*/
+
+gblAppIcons = {
+    // ── Navigation ─────────────────────────────────────────────
+    Home:       "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M8.277.084a.5.5 0 0 0-.554 0l-7.5 5A.5.5 0 0 0 .5 6h1.875v7H1.5a.5.5 0 0 0 0 1h13a.5.5 0 1 0 0-1h-.875V6H15.5a.5.5 0 0 0 .277-.916l-7.5-5zM12.375 6v7h-1.25V6h1.25zm-2.5 0v7h-1.25V6h1.25zm-2.5 0v7h-1.25V6h1.25zm-2.5 0v7h-1.25V6h1.25zM8 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM.5 15a.5.5 0 0 0 0 1h15a.5.5 0 1 0 0-1H.5z'/></svg>",
+    Menu:       "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z'/></svg>",
+    Back:       "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z'/></svg>",
+    Settings:   "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z'/><path d='M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.892 3.434-.901 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z'/></svg>",
+
+    // ── Actions ────────────────────────────────────────────────
+    Search:     "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/></svg>",
+    Add:        "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z'/></svg>",
+    Edit:       "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z'/></svg>",
+    Delete:     "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z'/><path fill-rule='evenodd' d='M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z'/></svg>",
+    Save:       "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z'/></svg>",
+    Close:      "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854z'/></svg>",
+    Filter:     "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2h-11z'/></svg>",
+
+    // ── Status ─────────────────────────────────────────────────
+    Check:      "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z'/></svg>",
+    Warning:    "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z'/></svg>",
+    Info:       "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.399l-.442.024-.058-.29L8.32 6.016h.988l-.93 4.572zm.24-3.732a1.07 1.07 0 1 1 0-2.14 1.07 1.07 0 0 1 0 2.14z'/></svg>",
+    Error:      "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z'/></svg>",
+
+    // ── Content ────────────────────────────────────────────────
+    User:       "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z'/></svg>",
+    Calendar:   "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/></svg>",
+    Document:   "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z'/><path d='M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z'/></svg>",
+    Notification: "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z'/></svg>",
+
+    // ── Directional ────────────────────────────────────────────
+    ChevronRight: "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/></svg>",
+    ChevronDown:  "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/></svg>",
+    Sort:         "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'><path d='M3.5 2.5a.5.5 0 0 0-1 0v8.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L3.5 11.293V2.5zm3.5 1a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z'/></svg>"
+};
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  USAGE EXAMPLES
+  ══════════════════════════════════════════════════════════════════
+
+  ── Basic: Image control with theme color ───────────────────────
+
+  Image.Image  = fxIcon(gblAppIcons.Search, AppTheme.BrandPrimary.Css)
+  Image.Width  = fxIconSize(App.Width, 2)
+  Image.Height = fxIconSize(App.Width, 2)
+
+
+  ── Dynamic color from Color object ─────────────────────────────
+
+  Image.Image = fxIconThemed(gblAppIcons.Warning, AppTheme.StatusWarning.Color)
+
+
+  ── With embedded size override ─────────────────────────────────
+
+  Image.Image = fxIconSized(gblAppIcons.Home, AppTheme.BrandPrimary.Css, 32)
+
+
+  ── Conditional color based on state ────────────────────────────
+
+  Image.Image = fxIcon(
+      gblAppIcons.Check,
+      If(ThisItem.IsComplete, AppTheme.StatusSuccess.Css, AppTheme.TextTertiary.Css)
+  )
+
+
+  ── In a gallery with status icons ──────────────────────────────
+
+  Image.Image = fxIcon(
+      Switch(
+          ThisItem.Status,
+          "Complete", gblAppIcons.Check,
+          "Warning",  gblAppIcons.Warning,
+          "Error",    gblAppIcons.Error,
+          gblAppIcons.Info
+      ),
+      Switch(
+          ThisItem.Status,
+          "Complete", AppTheme.StatusSuccess.Css,
+          "Warning",  AppTheme.StatusWarning.Css,
+          "Error",    AppTheme.StatusError.Css,
+          AppTheme.StatusInfo.Css
+      )
+  )
+
+
+  ── Sidebar nav with active state ───────────────────────────────
+
+  Image.Image = fxIcon(
+      gblAppIcons.Home,
+      If(
+          gblActivePage = "Home",
+          AppTheme.BrandAccent.Css,
+          "#FFFFFF"
+      )
+  )
+
+  ── Inside HtmlText (embed directly as img src) ────────────────
+
+  HtmlText.HtmlText = 
+      "<div style='display:flex; align-items:center; gap:" & fxSpacing(App.Width, 2) & "px;'>" &
+          "<img src=""" & fxIcon(gblAppIcons.Search, AppTheme.TextSecondary.Css) & """ 
+              width='" & fxIconSize(App.Width, 1) & "' 
+              height='" & fxIconSize(App.Width, 1) & "' />" &
+          "<span style='" & fxCssBodyStyle & "'>Search results</span>" &
+      "</div>"
+
+*/

@@ -1,0 +1,111 @@
+/*
+  ══════════════════════════════════════════════════════════════════
+  RFS-INSPIRED RESPONSIVE TYPOGRAPHY FRAMEWORK FOR POWERAPPS
+  Based on: https://getbootstrap.com/docs/5.0/getting-started/rfs/
+  Author: Joseph Ojonugwa Ameh - https://learncodeprofit.com
+  ══════════════════════════════════════════════════════════════════
+
+  Bootstrap RFS Formula (adapted for PowerApps discrete breakpoints):
+    fs_min  = BaseValue + (DesignSize - BaseValue) / Factor
+    fs_diff = DesignSize - fs_min
+    fluid   = fs_min + fs_diff * (ScreenWidth / Breakpoint)
+
+  Since PowerApps lacks calc()/vw, we evaluate the formula at known
+  screen widths rather than using hardcoded size tables.
+
+  USAGE:
+    fxFontSizeV2(App.Width, FontType.Title)
+    fxFontSizeV2(App.Width, FontType.Body)
+*/
+
+// ── RFS Configuration ──────────────────────────────────────────
+fxRFS = {
+    BaseValue:   12,        // Minimum floor (px) — font never goes below this
+    Breakpoint:  1200,      // At/above this width, fonts hit their full design size
+    Factor:      6,        // Compression strength (higher = less shrinking on small screens)
+    RemValue:    16          // Base rem equivalent in px
+};
+
+// ── Design Sizes (the "max" font sizes, reached at Breakpoint) ──
+fxTypographyV2 = {
+    Heading:    Font.'Open Sans',
+    Body:       Font.Lato,
+    LineHeight: 1.5,
+    // Design sizes in px — these are the sizes at fxRFS.Breakpoint and above
+    Title:      32,
+    Subtitle:   24,
+    Subtitle3:  20,
+    BodySize:   16,
+    SmallSize:  12
+};
+
+// ── Font Type Enum ─────────────────────────────────────────────
+// Use these as the second argument to fxFontSize
+FontType = { Title: 1, Subtitle: 2, Subtitle3: 3, Body: 4, Small: 5 };
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  fxFontSize — RFS-style fluid font calculation
+  
+  Parameters:
+    ScreenWidth : Number  — App.Width (actual screen width in px)
+    fontType    : Number  — FontType enum (1=Title, 2=Subtitle, 3=Subtitle3, 4=Body)
+  
+  Returns: Number (rounded font size in px)
+
+  Formula per RFS:
+    If DesignSize <= BaseValue → return DesignSize (too small to rescale)
+    If ScreenWidth >= Breakpoint → return DesignSize (full size)
+    Otherwise:
+      fs_min = BaseValue + (DesignSize - BaseValue) / Factor
+      fs_diff = DesignSize - fs_min
+      result = fs_min + fs_diff * (ScreenWidth / Breakpoint)
+  ══════════════════════════════════════════════════════════════════
+*/
+fxFontSizeV2(ScreenWidth: Number, fontType: Number): Number = 
+    With(
+        {
+            // Resolve the design size from fontType
+            designSize: Switch(
+                fontType,
+                1, fxTypographyV2.Title,
+                2, fxTypographyV2.Subtitle,
+                3, fxTypographyV2.Subtitle3,
+                4, fxTypographyV2.BodySize,
+                5, fxTypographyV2.SmallSize,
+                fxTypographyV2.BodySize
+            )
+        },
+        // If design size is at or below the base floor, no scaling needed
+        If(
+            designSize <= fxRFS.BaseValue,
+            designSize,
+            // If screen is at or above breakpoint, return full design size
+            If(
+                ScreenWidth >= fxRFS.Breakpoint,
+                designSize,
+                // RFS fluid calculation
+                With(
+                    {
+                        fsMin: fxRFS.BaseValue + (designSize - fxRFS.BaseValue) / fxRFS.Factor,
+                        fsDiff: designSize - (fxRFS.BaseValue + (designSize - fxRFS.BaseValue) / fxRFS.Factor)
+                    },
+                    // Round to nearest whole pixel
+                    Round(
+                        fsMin + fsDiff * (ScreenWidth / fxRFS.Breakpoint),
+                        0
+                    )
+                )
+            )
+        )
+    );
+
+
+/*
+  ══════════════════════════════════════════════════════════════════
+  fxLineHeight — Computed line height for a given context
+  Returns pixel value: fontSize * lineHeightMultiplier
+  ══════════════════════════════════════════════════════════════════
+*/
+fxLineHeight(ScreenWidth: Number, fontType: Number): Number = 
+    Round(fxFontSize(ScreenWidth, fontType) * fxTypography.LineHeight, 0);
